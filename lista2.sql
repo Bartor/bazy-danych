@@ -42,17 +42,17 @@ CREATE PROCEDURE dodajagentow (IN ilosc INT)
 BEGIN
     DECLARE i INT DEFAULT 0;
     WHILE i < ilosc DO
-        SET i = i + 1;
         INSERT INTO agenci (licencja, nazwa, wiek, typ) VALUES (
-            TO_BASE64(RANDOM_BYTES(10)),
+            TO_BASE64(RANDOM_BYTES(FLOOR(RAND(NOW())*16 + 4))),
             CONCAT_WS(' ',
                 ELT(FLOOR(RAND()*10 + 1), 'Jan', 'Pawel', 'Jurek', 'Kamil', 'Krzysztof', 'Anna', 'Dionizy', 'Topkekens', 'Filip', 'Natalia'),
                 ELT(FLOOR(RAND()*10 + 1), 'Sitwar', 'Drugi', 'Enty', 'Dadad', 'Futrzak', 'Piesek', 'Walesa', 'Wojtyla', 'Kamien', 'Sykala'),
                 ELT(FLOOR(RAND()*3 + 1), 'Agenci', 'S.C.', 'Z.O.O.')
             ),
-            RAND(NOW())*50 + 21,
+            (RAND()*50 + 21),
             ELT(FLOOR(RAND()*3 + 1), 'osoba indywidualna', 'agencja', 'inny')
         );
+        SET i = i + 1;
     END WHILE;
 END//
 DELIMITER ; 
@@ -64,7 +64,6 @@ BEGIN
     DECLARE i INT DEFAULT 0;
     SELECT COUNT(*) FROM aktorzy INTO n;
     WHILE i < n DO
-        SET i = i + 1;
         INSERT INTO kontrakty (agent, aktor, poczatek, koniec, gaza) VALUES (
             (SELECT licencja FROM agenci ORDER BY RAND() LIMIT 1),
             (SELECT id FROM aktorzy LIMIT i,1),
@@ -72,6 +71,7 @@ BEGIN
             DATE_ADD(CURDATE(), INTERVAL FLOOR(RAND()*365) DAY),
             FLOOR(RAND()*1000 + 1)
         );
+        SET i = i + 1;
     END WHILE;
 END//
 DELIMITER ;
