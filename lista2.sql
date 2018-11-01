@@ -76,3 +76,31 @@ BEGIN
 END//
 DELIMITER ;
 CALL przydzielkontrakty();
+6.:
+/*trzeba ręcznie i jeszcze mi si nie chce*/
+7.:
+DELIMITER //
+CREATE FUNCTION wyszukaj (im VARCHAR(30), naz VARCHAR(30)) RETURNS VARCHAR(120) DETERMINISTIC
+BEGIN
+    DECLARE res VARCHAR(120) DEFAULT '';
+    SELECT CONCAT_WS(', ', imie, nazwisko, nazwa, DATEDIFF(koniec, CURDATE())) AS informacja FROM aktorzy A JOIN kontrakty K ON A.id = K.aktor JOIN agenci AG ON AG.licencja = K.agent WHERE A.imie = im AND A.nazwisko = naz INTO res;
+    IF res = '' THEN SET res = 'Nie istnieje taki aktor!';
+    END IF;
+    RETURN res;
+END//
+DELIMITER ;
+8.:
+DELIMITER //
+CREATE FUNCTION srednia (lic VARCHAR(30)) RETURNS INT DETERMINISTIC
+BEGIN
+    DECLARE v INT DEFAULT 0;
+    SELECT AVG(gaza) FROM kontrakty WHERE agent = lic INTO v;
+    IF ISNULL(v) THEN RETURN NULL;
+    END IF;
+    RETURN v;
+END//
+DELIMITER ;
+9.:
+PREPARE iloscklientow FROM 'SELECT agent, COUNT(*) AS ilosc FROM (SELECT agent, aktor FROM kontrakty K JOIN agenci A ON K.agent = A.licencja WHERE K.agent = ?) AS T;';
+SET @test = 'qlpqK2iITRO8GyCGhUb86g=='; /*przykładowe dane dla mojej tabeli*/
+EXECUTE iloscklientow USING @test;
