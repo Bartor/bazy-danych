@@ -76,8 +76,7 @@ BEGIN
 END//
 DELIMITER ;
 CALL przydzielkontrakty();
-6.:
-/*trzeba ręcznie i jeszcze mi si nie chce*/
+6.: /*trzeba ręcznie i jeszcze mi si nie chce*/
 7.:
 DELIMITER //
 CREATE FUNCTION wyszukaj (im VARCHAR(30), naz VARCHAR(30)) RETURNS VARCHAR(120) DETERMINISTIC
@@ -104,3 +103,67 @@ DELIMITER ;
 PREPARE iloscklientow FROM 'SELECT agent, COUNT(*) AS ilosc FROM (SELECT agent, aktor FROM kontrakty K JOIN agenci A ON K.agent = A.licencja WHERE K.agent = ?) AS T;';
 SET @test = 'qlpqK2iITRO8GyCGhUb86g=='; /*przykładowe dane dla mojej tabeli*/
 EXECUTE iloscklientow USING @test;
+10:.
+DELIMITER //
+CREATE PROCEDURE najdluszykontrakt (OUT lic VARCHAR(30), OUT naz VARCHAR(90), OUT wie INT, OUT typ ENUM('osoba induwidualna'. 'agencja', 'inny'))
+BEGIN
+    DECLARE i INT DEFAULT 0;
+    DECLARE ilosckontraktow INT DEFAULT 0;
+    SELECT COUNT(*) FROM kontrakty INTO n;
+    WHILE i < ilosckontraktow DO
+        DECLARE ag VARCHAR(30) DEFAULT '';
+        SELECT agent FROM kontrakty LIMIT i, 1 INTO ag;
+        DECLARE iloscklientow INT DEFAULT 0;
+        SELECT COUNT(aktor) FROM kontrakty WHERE agent = ag INTO iloscklientow;
+        DECLARE j INT DEFAULT 0;
+        WHILE j < iloscklientow DO
+            DECLARE kl INT DEFUALT 0;
+            SELECT aktor FROM kontrakty LIMIT j, 1 INTO kl;
+            /* eeee coś tam dalej, nie mam pomysłu xD */
+11.:
+DELIMITER //
+CREATE TRIGGER insertaktorzy AFTER INSERT ON zagrali
+FOR EACH ROW
+BEGIN
+    UPDATE aktorzy SET liczba = (SELECT COUNT(*) FROM zagrali WHERE aktorzy.id = zagrali.aktor);
+    UPDATE aktorzy SET filmy = (SELECT GROUP_CONCAT(tytul SEPARATOR ', ') FROM zagrali Z JOIN filmy F ON F.id = Z.film WHERE aktorzy.liczba < 4 AND aktorzy.id = Z.aktor);
+END;//
+DELIMITER ;
+DELIMITER //
+CREATE TRIGGER updateaktorzy AFTER UPDATE ON zagrali
+FOR EACH ROW
+BEGIN
+    UPDATE aktorzy SET liczba = (SELECT COUNT(*) FROM zagrali WHERE aktorzy.id = zagrali.aktor);
+    UPDATE aktorzy SET filmy = (SELECT GROUP_CONCAT(tytul SEPARATOR ', ') FROM zagrali Z JOIN filmy F ON F.id = Z.film WHERE aktorzy.liczba < 4 AND aktorzy.id = Z.aktor);
+END;//
+DELIMITER ;
+DELIMITER //
+CREATE TRIGGER deleteaktorzy AFTER DELETE ON zagrali
+FOR EACH ROW
+BEGIN
+    UPDATE aktorzy SET liczba = (SELECT COUNT(*) FROM zagrali WHERE aktorzy.id = zagrali.aktor);
+    UPDATE aktorzy SET filmy = (SELECT GROUP_CONCAT(tytul SEPARATOR ', ') FROM zagrali Z JOIN filmy F ON F.id = Z.film WHERE aktorzy.liczba < 4 AND aktorzy.id = Z.aktor);
+END;//
+DELIMITER ;
+12.: /* czekamy na wyjaśnienia od prowadzącego */
+13.:
+DELIMITER //
+CREATE TRIGGER usunietofilm AFTER DELETE ON filmy
+FOR EACH ROW
+BEGIN
+    DELETE FROM zagrali WHERE zagrali.film = old.id;
+END;//
+DELIMITER ;
+/* odpowiedź na pytanie do zadania: tabela aktorzy zaktualizuje się zgodnie z triggerem deleteaktorzy z zadania 11. */
+14.:
+CREATE VIEW czternaste AS SELECT imie, nazwisko, nazwa, DATEDIFF(koniec, CURDATE()) AS koniec FROM aktorzy A JOIN kontrakty K ON (A.id = K.aktor AND DATEDIFF(K.koniec, CURDATE()) > 0) JOIN agenci AG ON AG.licencja = K.agent;
+/* odpowiedź na pytania do zadania: nie moze być utworzony, użytkownik nie ma permisji CREATE VIEW, ma do niego dostęp, widok może być wyświetlony SELECTem */
+15.:
+CREATE VIEW aktorzypub AS SELECT imie, nazwisko FROM aktorzy;
+CREATE VIEW agencipub AS SELECT nazwa, wiek, typ FROM agenci;
+CREATE VIEW filmypub AS SELECT tytul, gatunek, kategoria, czas FROM filmy;
+CREATE USER 'publiczny'@'localhost' IDENTIFIED BY 'publiczny'; /* specjalnie brak realnych zabezpieczeń */
+GRANT SELECT ON LaboratoriumFilmoteka.aktorzypub TO 'publiczny'@'localhost';
+GRANT SELECT ON LaboratoriumFilmoteka.agencipub TO 'publiczny'@'localhost';
+GRANT SELECT ON LaboratoriumFilmoteka.filmypub TO 'publiczny'@'localhost';
+/* odpowiedź na pytania do zadania: nie może wykonywać niczego z tych rzeczy, mówi o tym brak uprawnień EXECUTE oraz UPDATE, DELETE i INSERT */
