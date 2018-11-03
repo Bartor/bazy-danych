@@ -100,8 +100,8 @@ BEGIN
 END//
 DELIMITER ;
 9.:
-PREPARE iloscklientow FROM 'SELECT agent, COUNT(*) AS ilosc FROM (SELECT agent, aktor FROM kontrakty K JOIN agenci A ON K.agent = A.licencja WHERE K.agent = ?) AS T;';
-SET @test = 'qlpqK2iITRO8GyCGhUb86g=='; /*przykładowe dane dla mojej tabeli*/
+PREPARE iloscklientow FROM 'SELECT agent, COUNT(*) AS ilosc FROM (SELECT agent, aktor FROM kontrakty K JOIN agenci A ON K.agent = A.licencja WHERE A.nazwa = ?) AS T;';
+SET @test = 'Kamil Piesek Agenci'; /*przykładowe dane dla mojej tabeli*/
 EXECUTE iloscklientow USING @test;
 10:.
 DELIMITER //
