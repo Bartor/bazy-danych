@@ -76,7 +76,20 @@ BEGIN
 END//
 DELIMITER ;
 CALL przydzielkontrakty();
-6.: /*trzeba ręcznie i jeszcze mi si nie chce*/
+6.:
+INSERT INTO kontrakty (agent, aktor, poczatek, koniec, gaza) VALUES ('/A4ojQ==', 1, '20110101', '20120101', 666);
+/* itd. */
+/* okazuje się, że w mysql check constrainty nie działają, ale są parsowane przy tworzeniu tabel, hahahahahaha, trzeba pisać teraz triggery */
+DELIMITER //
+CREATE TRIGGER sprawdzdaty BEFORE INSERT ON kontrakty
+FOR EACH ROW
+BEGIN
+    IF (NEW.gaza < 0 OR NEW.koniec < DATE_ADD(NEW.poczatek, INTERVAL 1 DAY)) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawny rekord';
+    END IF;
+END;//
+DELIMITER ;
+ALTER TABLE kontrakty CHANGE gaza gaza INT COMMENT 'dolary papieskie na tydzień';
 7.:
 DELIMITER //
 CREATE FUNCTION wyszukaj (im VARCHAR(30), naz VARCHAR(30)) RETURNS VARCHAR(120) DETERMINISTIC
