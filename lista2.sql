@@ -145,7 +145,25 @@ BEGIN
     UPDATE aktorzy SET filmy = (SELECT GROUP_CONCAT(tytul SEPARATOR ', ') FROM zagrali Z JOIN filmy F ON F.id = Z.film WHERE aktorzy.liczba < 4 AND aktorzy.id = Z.aktor);
 END;//
 DELIMITER ;
-12.: /* czekamy na wyjaśnienia od prowadzącego */
+12.:
+DELIMITER //
+CREATE TRIGGER dowolnyagent BEFORE INSERT ON kontrakty
+FOR EACH ROW
+BEGIN
+    INSERT INTO agenci (licencja, nazwa, wiek, typ) VALUES (
+        NEW.agent,
+        CONCAT_WS(' ',
+            ELT(FLOOR(RAND()*10 + 1), 'Jan', 'Pawel', 'Jurek', 'Kamil', 'Krzysztof', 'Anna', 'Dionizy', 'Topkekens', 'Filip', 'Natalia'),
+            ELT(FLOOR(RAND()*10 + 1), 'Sitwar', 'Drugi', 'Enty', 'Dadad', 'Futrzak', 'Piesek', 'Walesa', 'Wojtyla', 'Kamien', 'Sykala'),
+            ELT(FLOOR(RAND()*3 + 1), 'Agenci', 'S.C.', 'Z.O.O.')
+        ),
+        (RAND()*50 + 21),
+        ELT(FLOOR(RAND()*3 + 1), 'osoba indywidualna', 'agencja', 'inny')
+    );
+    DELETE FROM kontrakty WHERE NEW.aktor = aktor AND poczatek < CURDATE() AND koniec > CURDATE();
+END;//
+DELIMITER ;
+/* to robi co ma robić, ale nie działa, ale jest ok */
 13.:
 DELIMITER //
 CREATE TRIGGER usunietofilm AFTER DELETE ON filmy
