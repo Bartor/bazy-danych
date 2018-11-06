@@ -8,7 +8,7 @@ CREATE TABLE filmy (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, tytul VARCHAR(64
 CREATE TABLE zagrali (aktor INT, film INT);
 INSERT INTO LaboratoriumFilmoteka.aktorzy SELECT actor_id AS id, first_name AS imie, last_name AS nazwisko FROM sakila.actor WHERE first_name NOT LIKE '%x%' AND first_name NOT LIKE '%v%' AND last_name NOT LIKE '%x%' AND last_name NOT LIKE '%v%';
 INSERT INTO LaboratoriumFilmoteka.filmy SELECT F.film_id AS id, title AS tytul, name AS gatunek, rating AS kategoria, length AS czas FROM sakila.film F JOIN sakila.film_category FC ON F.film_id = FC.film_id JOIN sakila.category C ON FC.category_id = C.category_id WHERE title NOT LIKE '%x%' AND title NOT LIKE '%v%';
-INSERT INTO zagrali SELECT film_id AS film, actor_id AS aktor FROM sakila.film_actor WHERE film_id IN (SELECT id FROM filmy) AND actor_id IN (SELECT id from aktorzy);
+INSERT INTO zagrali SELECT film_id AS film, actor_id AS aktor FROM sakila.film_actor WHERE film_id IN (SELECT id FROM filmy) AND actor_id IN (SELECT id FROM aktorzy);
 3.:
 ALTER TABLE aktorzy ADD COLUMN liczba INT;
 ALTER TABLE aktorzy ADD COLUMN filmy TEXT;
@@ -118,21 +118,69 @@ SET @test = 'Kamil Piesek Agenci'; /*przykładowe dane dla mojej tabeli*/
 EXECUTE iloscklientow USING @test;
 10:.
 DELIMITER //
-CREATE PROCEDURE najdluszykontrakt (OUT lic VARCHAR(30), OUT naz VARCHAR(90), OUT wie INT, OUT typ ENUM('osoba induwidualna'. 'agencja', 'inny'))
+CREATE PROCEDURE najdluzszykontrakt (OUT lic VARCHAR(30), OUT naz VARCHAR(90), OUT wie INT, OUT typ ENUM('osoba indywidualna', 'agencja', 'inny'), OUT dlugosc INT)
 BEGIN
+    DECLARE maksag VARCHAR(30); /* numer licencji agenta, którego szukamy */
+    DECLARE maks INT DEFAULT 0;
     DECLARE i INT DEFAULT 0;
     DECLARE ilosckontraktow INT DEFAULT 0;
-    SELECT COUNT(*) FROM kontrakty INTO n;
-    WHILE i < ilosckontraktow DO
-        DECLARE ag VARCHAR(30) DEFAULT '';
-        SELECT agent FROM kontrakty LIMIT i, 1 INTO ag;
-        DECLARE iloscklientow INT DEFAULT 0;
-        SELECT COUNT(aktor) FROM kontrakty WHERE agent = ag INTO iloscklientow;
-        DECLARE j INT DEFAULT 0;
-        WHILE j < iloscklientow DO
-            DECLARE kl INT DEFUALT 0;
-            SELECT aktor FROM kontrakty LIMIT j, 1 INTO kl;
-            /* eeee coś tam dalej, nie mam pomysłu xD */
+    DECLARE ag VARCHAR(30);
+    DECLARE iloscklientow INT DEFAULT 0;
+    DECLARE kl INT DEFAULT 0;
+    DECLARE j INT DEFAULT 0;
+    DECLARE ilosckontr INT DEFAULT 0;
+    DECLARE k INT DEFAULT 1;
+    DECLARE k1 INT DEFAULT 0;
+    DECLARE k2 INT DEFAULT 0;
+    DECLARE dnizrzedu INT DEFAULT 0;
+    SELECT COUNT(*) FROM kontrakty INTO ilosckontraktow; /* przygotowanie do iterowania przez wszystkie kontrakty */
+    agenci_petla: WHILE i < ilosckontraktow DO /* iteracja przez kontrakty */
+        SET j = 0;
+        SELECT agent FROM kontrakty LIMIT i, 1 INTO ag; /* wybór konkretnego agenta */
+        SELECT COUNT(aktor) FROM kontrakty WHERE agent = ag INTO iloscklientow; /* przygotowanie do iteracji przez klientów */
+        klienci_petla: WHILE j < iloscklientow DO /* iteracja przez klientów */
+            SET dnizrzedu = 0;
+            SET k = 1;
+            SELECT aktor FROM kontrakty WHERE agent = ag LIMIT j, 1 INTO kl; /* wybór konkretnego klienta */
+            CREATE TEMPORARY TABLE kontr AS SELECT * FROM (SELECT poczatek AS data FROM kontrakty WHERE agent = ag AND aktor = kl UNION SELECT koniec AS data FROM kontrakty WHERE agent = ag AND aktor = kl) AS T ORDER BY data DESC; /* tabela tymczasowa, aby skrócić zapisy */
+            SELECT COUNT(*) FROM kontr INTO ilosckontr;
+            IF ((SELECT data FROM kontr LIMIT 1) > CURDATE()) THEN
+                SET dnizrzedu = DATEDIFF(CURDATE(), (SELECT data FROM kontr LIMIT 1, 1)); /* ustawiamy liczbę dni z rzędu na różnicę aktualnej daty i rozpoczęcia ostatniego kontraktu */
+            END IF;
+            IF (dnizrzedu > 0) THEN
+                daty_petla: WHILE k+2 < ilosckontr DO /* iteracja po datach konkretnego układu klient-agent */
+                SET k1 = k + 1;
+                SET k2 = k + 2;
+                CREATE TEMPORARY TABLE kontr1 AS SELECT * FROM (SELECT poczatek AS data FROM kontrakty WHERE agent = ag AND aktor = kl UNION SELECT koniec AS data FROM kontrakty WHERE agent = ag AND aktor = kl) AS T ORDER BY data DESC; /* mysql zabrania odwołania się do tej samej tablicy tymczasowej dwukrotnie xDDDDDDD */ 
+                CREATE TEMPORARY TABLE kontr2 AS SELECT * FROM (SELECT poczatek AS data FROM kontrakty WHERE agent = ag AND aktor = kl UNION SELECT koniec AS data FROM kontrakty WHERE agent = ag AND aktor = kl) AS T ORDER BY data DESC;
+                IF (DATEDIFF((SELECT data FROM kontr1 LIMIT k, 1), (SELECT data FROM kontr2 LIMIT k1, 1)) > 1) THEN
+                    SET k = ilosckontr;
+                    DROP TEMPORARY TABLE kontr1;
+                    DROP TEMPORARY TABLE kontr2;
+                    ITERATE daty_petla;
+                END IF;
+                SET dnizrzedu = dnizrzedu + DATEDIFF((SELECT data FROM kontr1 LIMIT k1, 1), (SELECT data FROM kontr2 LIMIT k2, 1));
+                DROP TEMPORARY TABLE kontr1;
+                DROP TEMPORARY TABLE kontr2;
+                SET k = k+2;
+                END WHILE;
+            END IF;
+            IF (dnizrzedu > maks) THEN
+                SET maks = dnizrzedu;
+                SET maksag = ag;
+            END IF;
+            DROP TEMPORARY TABLE kontr;
+            SET j = j+1;
+        END WHILE;
+        SET i = i+1;
+    END WHILE;
+    SELECT licencja FROM agenci WHERE licencja = maksag INTO lic;
+    SELECT wiek FROM agenci WHERE licencja = maksag INTO wie;
+    SELECT nazwa FROM agenci WHERE licencja = maksag INTO naz;
+    SELECT typ FROM agenci WHERE licencja = maksag INTO typ;
+    SET dlugosc = maks;
+END;// /* o cholera to chyba działa xDDDDDD */
+DELIMITER ;
 11.:
 DELIMITER //
 CREATE TRIGGER insertaktorzy AFTER INSERT ON zagrali
