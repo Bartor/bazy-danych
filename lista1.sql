@@ -5,7 +5,7 @@
 5. SELECT DISTINCT first_name, last_name FROM film F JOIN film_actor FA ON F.film_id = FA.film_id JOIN actor A ON FA.actor_id = A.actor_id WHERE F.special_features LIKE '%Deleted Scenes%';
 6. SELECT COUNT(film_id), rating FROM film GROUP BY rating ORDER BY COUNT(film_id) DESC;
 7. SELECT title FROM rental R JOIN inventory I ON R.inventory_id = I.inventory_id JOIN film F on F.film_id = I.film_id WHERE R.rental_date > '20050525' AND R.rental_date < '20050530' ORDER by title;
-8. SELECT title FROM film WHERE rating = 'R' SORT BY length LIMIT 5;
+8. SELECT title FROM film WHERE rating = 'R' ORDER BY length LIMIT 5;
 9. SELECT DISTINCT C.first_name, C.last_name FROM rental R JOIN rental RR ON R.customer_id = RR.customer_id JOIN customer C ON R.customer_id = C.customer_id WHERE R.staff_id < RR.staff_id;
 10. SELECT country, count FROM (SELECT COUNT(city_id) AS count, country FROM city C JOIN country CO ON C.country_id = CO.country_id GROUP BY country ORDER BY COUNT(city_id) DESC) T WHERE count >= (SELECT COUNT(city_id) FROM city C JOIN country CO ON C.country_id = CO.country_id WHERE country = 'canada');
 11. SELECT * FROM (SELECT COUNT(rental_id) AS count, C.* FROM rental R JOIN customer C ON R.customer_id = C.customer_id GROUP BY customer_id ORDER BY COUNT(rental_id) DESC) T WHERE count > (SELECT COUNT(rental_id) AS count FROM rental R JOIN customer C ON R.customer_id = C.customer_id WHERE C.email = 'PETER.MENARD@sakilacustomer.org');
