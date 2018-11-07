@@ -213,7 +213,7 @@ FOR EACH ROW
 BEGIN
     DECLARE n INT DEFAULT 0;
     SELECT COUNT(*) FROM kontrakty WHERE NEW.aktor = aktor AND poczatek < CURDATE() AND koniec > CURDATE() INTO n;
-    IF (n > 1) THEN
+    IF (n > 0) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'nie da się';
     END IF;
     INSERT INTO agenci (licencja, nazwa, wiek, typ) VALUES (
