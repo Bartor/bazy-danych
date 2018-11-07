@@ -211,6 +211,11 @@ DELIMITER //
 CREATE TRIGGER dowolnyagent BEFORE INSERT ON kontrakty
 FOR EACH ROW
 BEGIN
+    DECLARE n INT DEFAULT 0;
+    SELECT COUNT(*) FROM kontrakty WHERE NEW.aktor = aktor AND poczatek < CURDATE() AND koniec > CURDATE() INTO n;
+    IF (n > 1) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'nie da się';
+    END IF;
     INSERT INTO agenci (licencja, nazwa, wiek, typ) VALUES (
         NEW.agent,
         CONCAT_WS(' ',
@@ -221,7 +226,6 @@ BEGIN
         (RAND()*50 + 21),
         ELT(FLOOR(RAND()*3 + 1), 'osoba indywidualna', 'agencja', 'inny')
     );
-    DELETE FROM kontrakty WHERE NEW.aktor = aktor AND poczatek < CURDATE() AND koniec > CURDATE();
 END;//
 DELIMITER ;
 /* to robi co ma robić, ale nie działa, ale jest ok */
