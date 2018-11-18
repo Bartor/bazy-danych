@@ -3,9 +3,22 @@ CREATE DATABASE LaboratoriumFilmoteka;
 CREATE USER '244928'@'localhost' IDENTIFIED BY 'Bartosz928';
 GRANT SELECT, INSERT, UPDATE ON LaboratoriumFilmoteka.* TO '244928'@'localhost';
 2.:
-CREATE TABLE aktorzy (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, imie VARCHAR(30), nazwisko VARCHAR(30));
-CREATE TABLE filmy (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, tytul VARCHAR(64), gatunek VARCHAR(20), czas INT, kategoria VARCHAR(5));
-CREATE TABLE zagrali (aktor INT, film INT);
+CREATE TABLE aktorzy (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
+    imie VARCHAR(30), 
+    nazwisko VARCHAR(30)
+);
+CREATE TABLE filmy (
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+     tytul VARCHAR(64), 
+     gatunek VARCHAR(20), 
+     czas INT, 
+     kategoria VARCHAR(5)
+);
+CREATE TABLE zagrali (
+    aktor INT, 
+    film INT
+);
 INSERT INTO LaboratoriumFilmoteka.aktorzy SELECT actor_id AS id, first_name AS imie, last_name AS nazwisko FROM sakila.actor WHERE first_name NOT LIKE '%x%' AND first_name NOT LIKE '%v%' AND last_name NOT LIKE '%x%' AND last_name NOT LIKE '%v%';
 INSERT INTO LaboratoriumFilmoteka.filmy SELECT F.film_id AS id, title AS tytul, name AS gatunek, rating AS kategoria, length AS czas FROM sakila.film F JOIN sakila.film_category FC ON F.film_id = FC.film_id JOIN sakila.category C ON FC.category_id = C.category_id WHERE title NOT LIKE '%x%' AND title NOT LIKE '%v%';
 INSERT INTO zagrali SELECT actor_id AS aktor, film_id AS film FROM sakila.film_actor WHERE film_id IN (SELECT id FROM filmy) AND actor_id IN (SELECT id FROM aktorzy);
