@@ -8,7 +8,7 @@ CREATE TABLE filmy (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, tytul VARCHAR(64
 CREATE TABLE zagrali (aktor INT, film INT);
 INSERT INTO LaboratoriumFilmoteka.aktorzy SELECT actor_id AS id, first_name AS imie, last_name AS nazwisko FROM sakila.actor WHERE first_name NOT LIKE '%x%' AND first_name NOT LIKE '%v%' AND last_name NOT LIKE '%x%' AND last_name NOT LIKE '%v%';
 INSERT INTO LaboratoriumFilmoteka.filmy SELECT F.film_id AS id, title AS tytul, name AS gatunek, rating AS kategoria, length AS czas FROM sakila.film F JOIN sakila.film_category FC ON F.film_id = FC.film_id JOIN sakila.category C ON FC.category_id = C.category_id WHERE title NOT LIKE '%x%' AND title NOT LIKE '%v%';
-INSERT INTO zagrali SELECT film_id AS film, actor_id AS aktor FROM sakila.film_actor WHERE film_id IN (SELECT id FROM filmy) AND actor_id IN (SELECT id FROM aktorzy);
+INSERT INTO zagrali SELECT actor_id AS aktor, film_id AS film FROM sakila.film_actor WHERE film_id IN (SELECT id FROM filmy) AND actor_id IN (SELECT id FROM aktorzy);
 3.:
 ALTER TABLE aktorzy ADD COLUMN liczba INT;
 ALTER TABLE aktorzy ADD COLUMN filmy TEXT;
