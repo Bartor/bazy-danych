@@ -27,7 +27,7 @@ CREATE TABLE ludzie(
     nazwisko VARCHAR(30),
     data_urodzenia DATE,
     wzrost FLOAT,
-    WAGA FLOAT,
+    waga FLOAT,
     rozmiar_buta INT,
     ulubiony_kolor ENUM('czarny', 'czerwony', 'zielony', 'niebieski', 'biały')
 );
@@ -152,4 +152,156 @@ END//
 DELIMITER ;
 /* ten kod ma błędy, kiedy dwie osoby urodziły się tego samego dnia, nie przejmuję się tym, bo sql nie służy w ogóle do generowania samemu sobie danych i próba naprawienia tego jest po prostu marnowaniem czasu */
 5.:
-
+DELIMITER //
+CREATE PROCEDURE agregacja (IN kol ENUM('pesel', 'imie', 'nazwisko', 'data_urodzenia', 'wzrost', 'waga', 'rozmiar_buta', 'ulubiony_kolor'), IN agg VARCHAR(20), OUT X VARCHAR(100))
+BEGIN
+    SET @temp = NULL;
+    SET @arg = kol;
+    CASE LOWER(agg)
+        WHEN 'avg' THEN
+            SET @query = CONCAT('SELECT AVG(', kol, ') FROM LUDZIE INTO @temp');
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        WHEN 'count' THEN
+            SET @query = CONCAT('SELECT COUNT(', kol, ') FROM ludzie INTO @temp');
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        WHEN 'max' THEN
+            SET @query = CONCAT('SELECT MAX(', kol, ') FROM ludzie INTO @temp');
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        WHEN 'min' THEN
+            SET @query = CONCAT('SELECT MIN(', kol, ') FROM ludzie INTO @temp');
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        WHEN 'sum' THEN
+            SET @query = CONCAT('SELECT SUM(', kol, ') FROM ludzie INTO @temp');
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        ELSE
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawna funkcja agregująca';
+    END CASE;
+    SET X = @temp;
+END//
+DELIMITER ;
+6.:
+/* to zadanie znowu nie ma sensu, bo nie da się rollbackować selectów, więc mija się to kompletnie z celem */
+DELIMITER //
+CREATE PROCEDURE zaplac (IN budzet FLOAT, IN zawod ENUM('aktor', 'agent', 'informatyk', 'reporter', 'sprzedawca'))
+BEGIN
+    DECLARE wyplacalne INT DEFAULT 1;
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE pesel CHAR(11);
+    DECLARE pensja FLOAT;
+    DECLARE cur1 CURSOR FOR (SELECT P.pesel, P.pensja FROM pracownicy P WHERE P.zawod = zawod);
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+    CREATE TEMPORARY TABLE temp (pesel CHAR(3), status BOOLEAN); /* tablica zbierająca informacje, bo selecta się nie da rollbackować */
+    SET @bud = budzet;
+    SET autocommit=0;
+    OPEN cur1;
+    START TRANSACTION;
+    r: LOOP
+        FETCH cur1 INTO pesel, pensja;
+        IF done THEN
+            LEAVE r;
+        END IF;
+        SET @bud = @bud - pensja;
+        IF (@bud > 0) THEN
+            INSERT INTO temp VALUES(SUBSTRING(pesel, 9), TRUE); /* tu powinna być też operacja płacenia */
+        ELSE
+            SET wyplacalne = FALSE;
+            LEAVE r;
+        END IF;
+    END LOOP;
+    CLOSE cur1;
+    IF (wyplacalne = 1) THEN
+        SELECT * FROM temp;
+        COMMIT;
+    ELSE ROLLBACK;
+    END IF;
+    DROP TABLE temp;
+END//
+DELIMITER ;
+7.:
+/* nie wiem, o co chodzi w tym rozkładzie, to zadanie będzie działać, jak się dowiem */
+DELIMITER //
+CREATE FUNCTION laplace(a FLOAT, b FLOAT, x FLOAT) RETURNS FLOAT DETERMINISTIC
+BEGIN
+    DECLARE r FLOAT DEFAULT 0;
+    SET r = (1/2*b)*EXP(-(ABS(x-a)/b));
+    RETURN r;
+END//
+DELIMITER ;
+DELIMITER //
+CREATE PROCEDURE statystyki (IN kol ENUM('wzrost', 'waga', 'pensja'), IN zawod ENUM('aktor', 'agent', 'informatyk', 'reporter', 'sprzedawca'))
+BEGIN
+    DECLARE delta FLOAT;
+    SET @z = zawod;
+    SET @r = NULL;
+    SET @maks = 0;
+    SET @min = 0;
+    SET @query = CONCAT('SELECT MAX(', kol, ') FROM ludzie INTO @maks');
+    PREPARE stmt1 FROM @query;
+    SET @query = CONCAT('SELECT MAX(', kol, ') FROM ludzie INTO @min');
+    PREPARE stmt2 FROM @query;
+    EXECUTE stmt1;
+    EXECUTE stmt2;
+    SET delta = @maks - @min;
+    SET @query = CONCAT('SELECT laplace(1, 2, RAND()*(', delta, '/0.05))+SUM(', kol, ') FROM ludzie L JOIN pracownicy P ON L.pesel = P.pesel WHERE zawod = ? INTO @r');
+    /* chciałbym wiedzieć, co znaczą te literki przy rozkładzie, ale nie mieliśmy tego nigdy nigdzie poza bd, a google milczy */
+    PREPARE stmt FROM @query;
+    EXECUTE stmt USING @z;
+    SELECT @r AS Wynik;
+END//
+DELIMITER ;
+8.:
+CREATE DATABASE logi;
+CREATE TABLE pensje(
+    pesel CHAR(11),
+    stare FLOAT,
+    nowe FLOAT,
+    czas DATE,
+    uzytkownik TEXT
+);
+DELIMITER //
+CREATE TRIGGER pensjeupdate AFTER UPDATE ON lista3.pracownicy
+FOR EACH ROW
+BEGIN
+    INSERT INTO logi.pensje VALUES (
+        OLD.pesel,
+        OLD.pensja,
+        NEW.pensja,
+        NOW(),
+        USER()
+    );
+END//
+CREATE TRIGGER pensjeinsert AFTER INSERT ON lista3.pracownicy
+FOR EACH ROW
+BEGIN
+    INSERT INTO logi.pensje VALUES (
+        NEW.pesel,
+        NULL,
+        NEW.pensja,
+        NOW(),
+        USER()
+    );
+END//
+CREATE TRIGGER pensjedelete AFTER DELETE ON lista3.pracownicy
+FOR EACH ROW
+BEGIN
+    INSERT INTO logi.pensje VALUES (
+        OLD.pesel,
+        OLD.pensja,
+        NULL,
+        NOW(),
+        USER()
+    );
+END//
+DELIMITER ;
+9.:
+/* nie wiem, jak uwzględnić użycie mojego IDE, bo nie używałem nigdy żadnego IDE do robienia baz danych, więc zostawiam ten podpunkt bez komentarza */
