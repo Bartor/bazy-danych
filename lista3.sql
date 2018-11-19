@@ -304,4 +304,9 @@ BEGIN
 END//
 DELIMITER ;
 9.:
-/* nie wiem, jak uwzględnić użycie mojego IDE, bo nie używałem nigdy żadnego IDE do robienia baz danych, więc zostawiam ten podpunkt bez komentarza */
+/* powershell w MySQL Server/bin */
+.\mysqldump.exe lista3 --user=root --result-file lista3.sql --password
+/* podajemy hasło, baza danych znajduje się w pliku dump.sql */
+DROP DATABASE lista3;
+/* teraz używamy cmd w tym samym folderze, bo tak */
+.\mysql.exe -u root -p lista3 < .\lista3.sql
