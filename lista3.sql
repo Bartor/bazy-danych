@@ -252,7 +252,7 @@ BEGIN
     EXECUTE stmt1;
     EXECUTE stmt2;
     SET delta = @maks - @min;
-    SET @query = CONCAT('SELECT laplace(1, 2, RAND()*(', delta, '/0.05))+SUM(', kol, ') FROM ludzie L JOIN pracownicy P ON L.pesel = P.pesel WHERE zawod = ? INTO @r');
+    SET @query = CONCAT('SELECT laplace(0, (SELECT ', kol, ' FROM ludzie ORDER BY RAND() LIMIT 1), (', delta, '/0.05))+SUM(', kol, ') FROM ludzie L JOIN pracownicy P ON L.pesel = P.pesel WHERE zawod = ? INTO @r');
     /* chciałbym wiedzieć, co znaczą te literki przy rozkładzie, ale nie mieliśmy tego nigdy nigdzie poza bd, a google milczy */
     PREPARE stmt FROM @query;
     EXECUTE stmt USING @z;
