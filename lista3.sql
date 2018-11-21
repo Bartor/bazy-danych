@@ -59,6 +59,7 @@ BEGIN
         ) <> SUBSTRING(NEW.PESEL, 11, 1) OR
         NEW.wzrost < 0 OR NEW.waga < 0
     ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawny rekord';
+    END IF;
 END//
 CREATE TRIGGER updateludzie BEFORE UPDATE ON ludzie
 FOR EACH ROW
@@ -82,6 +83,7 @@ BEGIN
         ) <> SUBSTRING(NEW.PESEL, 11, 1) OR
         NEW.wzrost < 0 OR NEW.waga < 0
     ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawny rekord';
+    END IF;
 END//
 DELIMITER ;
 DELIMITER //
