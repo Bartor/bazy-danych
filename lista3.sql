@@ -37,6 +37,56 @@ CREATE TABLE pracownicy(
     pensja FLOAT
 );
 DELIMITER //
+CREATE TRIGGER insertludzie BEFORE INSERT ON ludzie
+FOR EACH ROW
+BEGIN
+    IF (
+        SUBSTRING(NEW.PESEL, 1, 2) <> SUBSTRING(YEAR(NEW.data_urodzenia), 3, 2) OR
+        SUBSTRING(NEW.PESEL, 3, 2) <> MONTH(NEW.data_urodzenia) OR
+        SUBSTRING(NEW.PESEL, 5, 2) <> DAYOFMONTH(NEW.data_urodzenia) OR
+        MOD(
+            9*CAST(SUBSTRING(pesel, 1, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 2, 1) AS UNSIGNED) + 
+            3*CAST(SUBSTRING(pesel, 3, 1) AS UNSIGNED) + 
+            1*CAST(SUBSTRING(pesel, 4, 1) AS UNSIGNED) + 
+            9*CAST(SUBSTRING(pesel, 5, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 6, 1) AS UNSIGNED) + 
+            3*CAST(SUBSTRING(pesel, 7, 1) AS UNSIGNED) + 
+            1*CAST(SUBSTRING(pesel, 8, 1) AS UNSIGNED) + 
+            9*CAST(SUBSTRING(pesel, 9, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 10, 1) AS UNSIGNED),
+            10
+        ) <> SUBSTRING(NEW.PESEL, 11, 1) OR
+        NEW.wzrost < 0 OR NEW.waga < 0
+    ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawny rekord';
+    END IF;
+END//
+CREATE TRIGGER updateludzie BEFORE UPDATE ON ludzie
+FOR EACH ROW
+BEGIN
+    IF (
+        SUBSTRING(NEW.PESEL, 1, 2) <> SUBSTRING(YEAR(NEW.data_urodzenia), 3, 2) OR
+        SUBSTRING(NEW.PESEL, 3, 2) <> MONTH(NEW.data_urodzenia) OR
+        SUBSTRING(NEW.PESEL, 5, 2) <> DAYOFMONTH(NEW.data_urodzenia) OR
+        MOD(
+            9*CAST(SUBSTRING(pesel, 1, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 2, 1) AS UNSIGNED) + 
+            3*CAST(SUBSTRING(pesel, 3, 1) AS UNSIGNED) + 
+            1*CAST(SUBSTRING(pesel, 4, 1) AS UNSIGNED) + 
+            9*CAST(SUBSTRING(pesel, 5, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 6, 1) AS UNSIGNED) + 
+            3*CAST(SUBSTRING(pesel, 7, 1) AS UNSIGNED) + 
+            1*CAST(SUBSTRING(pesel, 8, 1) AS UNSIGNED) + 
+            9*CAST(SUBSTRING(pesel, 9, 1) AS UNSIGNED) + 
+            7*CAST(SUBSTRING(pesel, 10, 1) AS UNSIGNED),
+            10
+        ) <> SUBSTRING(NEW.PESEL, 11, 1) OR
+        NEW.wzrost < 0 OR NEW.waga < 0
+    ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'niepoprawny rekord';
+    END IF;
+END//
+DELIMITER ;
+DELIMITER //
 CREATE PROCEDURE dodajludzi (IN ilosc INT)
 BEGIN
     DECLARE i INT DEFAULT 0;
