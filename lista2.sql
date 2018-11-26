@@ -1,7 +1,7 @@
 1.:
 CREATE DATABASE LaboratoriumFilmoteka;
-CREATE USER '244928'@'localhost' IDENTIFIED BY 'Bartosz928';
-GRANT SELECT, INSERT, UPDATE ON LaboratoriumFilmoteka.* TO '244928'@'localhost';
+CREATE USER 'indeks'@'localhost' IDENTIFIED BY 'Bartosz928';
+GRANT SELECT, INSERT, UPDATE ON LaboratoriumFilmoteka.* TO 'indeks'@'localhost';
 2.:
 CREATE TABLE aktorzy (
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
